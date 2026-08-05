@@ -1,46 +1,55 @@
-// src/router/index.js
-import { createRouter, createWebHistory } from 'vue-router';
-import InventarioView from '../views/InventarioView.vue';
-import PrestamosView from '../views/PrestamosView.vue';
-import PrestamoFormView from '../views/PrestamoFormView.vue';
-import PanelView from '../views/PanelView.vue';
+// Configuración de Vue Router para El Pañol.
+// - Usa createWebHashHistory para que funcione bien en GitHub Pages.
+// - Define las cuatro pantallas de la actividad y una ruta comodín que redirige al panel.
 
-const routes = [
-  {
-    path: '/',
-    redirect: { name: 'panel' }, // El PDF sugiere una ruta comodín al panel
-  },
-  {
-    path: '/panel',
-    name: 'panel',
-    component: PanelView,
-  },
-  {
-    path: '/prestamos',
-    name: 'prestamos',
-    component: PrestamosView,
-  },
-  {
-    path: '/prestamos/nuevo',
-    name: 'prestamo-nuevo',
-    component: PrestamoFormView,
-  },
-  {
-    path: '/prestamos/:id',
-    name: 'prestamo-editar',
-    component: PrestamoFormView,
-    props: true, // El componente recibe `id` como prop en vez de usar useRoute()
-  },
-  {
-    path: '/inventario',
-    name: 'inventario',
-    component: InventarioView,
-  },
-];
+import { createRouter, createWebHashHistory } from 'vue-router'
+
+// importa tus vistas reales
+import PanelView from '../views/PanelView.vue'
+import PrestamosView from '../views/PrestamosView.vue'
+import InventarioView from '../views/InventarioView.vue'
+import PrestamoFormView from '../views/PrestamoFormView.vue'
 
 const router = createRouter({
-  history: createWebHistory(),
-  routes,
-});
+  // En GitHub Pages es más seguro usar hash mode.
+  // import.meta.env.BASE_URL ya incluye el base de Vite.
+  history: createWebHashHistory(import.meta.env.BASE_URL),
 
-export default router;
+  routes: [
+    {
+      path: '/',
+      name: 'panel',
+      component: PanelView,
+    },
+    {
+      path: '/prestamos',
+      name: 'prestamos',
+      component: PrestamosView,
+    },
+    {
+      path: '/inventario',
+      name: 'inventario',
+      component: InventarioView,
+    },
+    {
+      // formulario para crear nuevo préstamo
+      path: '/prestamos/nuevo',
+      name: 'prestamo-nuevo',
+      component: PrestamoFormView,
+    },
+    {
+      // mismo componente para editar, recibiendo el id como prop
+      path: '/prestamos/:id',
+      name: 'prestamo-editar',
+      component: PrestamoFormView,
+      props: true,
+    },
+    {
+      // ruta comodín: cualquier cosa rara redirige al panel
+      path: '/:pathMatch(.*)*',
+      redirect: { name: 'panel' },
+    },
+  ],
+})
+
+export default router
