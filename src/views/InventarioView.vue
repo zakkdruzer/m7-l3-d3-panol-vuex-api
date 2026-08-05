@@ -1,30 +1,69 @@
-<!-- src/views/InventarioView.vue -->
 <template>
   <section>
-    <div class="cabecera">
-      <h2>Inventario de equipos</h2>
-      <p class="sub">Usa los filtros para ver qué está disponible.</p>
+    <header class="cabecera">
+      <div>
+        <h2>Inventario</h2>
+        <p class="sub">
+          {{ resumenInventario }}
+        </p>
+      </div>
+      <div>
+        <button class="btn" @click="recargar">
+          Recargar
+        </button>
+      </div>
+    </header>
+
+    <!-- Estado: cargando -->
+    <div v-if="cargando" class="aviso">
+      Consultando el inventario...
     </div>
 
-    <!-- Estado de carga -->
-    <div v-if="cargando" class="aviso">Cargando inventario...</div>
-
-    <!-- Error de carga -->
+    <!-- Estado: error -->
     <div v-else-if="error" class="aviso aviso--error">
-      {{ error }}
+      <p>{{ error }}</p>
+      <button class="btn btn--fino" @click="reintentar">
+        Reintentar
+      </button>
     </div>
 
-    <!-- Lista de equipos -->
+    <!-- Estado: vacío (sin equipos) -->
+    <div v-else-if="equipos.length === 0" class="aviso">
+      No hay equipos registrados.
+    </div>
+
+    <!-- Estado: con datos -->
     <div v-else class="grilla">
-      <article v-for="equipo in equipos" :key="equipo.id" class="tarjeta">
+      <article
+        v-for="equipo in equipos"
+        :key="equipo.id"
+        class="tarjeta"
+        :style="equipo.operativo ? undefined : { opacity: 0.6 }"
+      >
         <h3>{{ equipo.nombre }}</h3>
         <p class="sub">
-          {{ equipo.marca }} · {{ equipo.categoria }}
+          {{ equipo.marca }} · {{ etiquetaCategoria(equipo.categoria) }}
         </p>
-        <p>
-          Stock total: {{ equipo.stockTotal }}<br />
-          Comprometidas: {{ equipo.comprometidas }}<br />
-          Disponibles: <strong>{{ equipo.disponibles }}</strong>
+
+        <!-- Resumen de disponibilidad -->
+        <p class="sub" style="margin-top: .75rem;">
+          <strong>{{ equipo.disponibles }}</strong>
+          de {{ equipo.stockTotal }} disponibles
+        </p>
+
+        <!-- Barra de uso: calcula el porcentaje desde stockTotal y comprometidas -->
+        <span class="riel" :class="{ 'riel--lleno': porcentajeOcupado(equipo) === 100 }">
+          <i :style="{ width: `${porcentajeOcupado(equipo)}%` }"></i>
+        </span>
+
+        <!-- Precio por unidad formateado en moneda chilena -->
+        <p class="sub" style="margin-top: .75rem;">
+          {{ formatoMoneda(equipo.valorUnitario) }} por unidad
+        </p>
+
+        <!-- Etiqueta de equipo en mantención cuando no es operativo -->
+        <p v-if="!equipo.operativo" style="margin:.5rem 0 0;">
+          <span class="chip chip--atraso">En mantención</span>
         </p>
       </article>
     </div>
@@ -32,21 +71,66 @@
 </template>
 
 <script setup>
-// Se importa la función de ayuda de Vuex
-import { useStore } from 'vuex';
 import { computed, onMounted } from 'vue';
+import { useStore } from 'vuex';
 
-// Se obtiene la instancia del store
 const store = useStore();
 
-// Se crean propiedades reactivas que leen del módulo "equipos"
+// Leer del módulo equipos
 const equipos = computed(() => store.getters['equipos/equipos']);
 const cargando = computed(() => store.getters['equipos/inventarioCargando']);
 const error = computed(() => store.getters['equipos/inventarioError']);
 
-// Al montar la vista, se dispara la acción para cargar el inventario.
+// Texto de resumen (ejemplo: "8 equipos, 6 con unidades disponibles")
+const resumenInventario = computed(() => {
+  const total = equipos.value.length;
+  const conUnidades = equipos.value.filter((e) => e.disponibles > 0).length;
+  return `${total} equipos, ${conUnidades} con unidades disponibles`;
+});
+
+// Cargar catálogo y categorías al montar.
+// No se volverá a pedir el catálogo si ya existe en el store.
 onMounted(() => {
   store.dispatch('equipos/cargar');
   store.dispatch('equipos/cargarCategorias');
 });
+
+// Forzar recarga desde el botón "Recargar".
+function recargar() {
+  store.dispatch('equipos/cargar', { forzar: true });
+}
+
+// Reintentar en caso de error (también fuerza).
+function reintentar() {
+  store.dispatch('equipos/cargar', { forzar: true });
+}
+
+// Formateo de moneda chilena.
+function formatoMoneda(valor) {
+  return new Intl.NumberFormat('es-CL', {
+    style: 'currency',
+    currency: 'CLP',
+    maximumFractionDigits: 0,
+  }).format(valor);
+}
+
+// Nombres legibles de categorías, usando el mapa sugerido en el PDF.
+function etiquetaCategoria(codigo) {
+  const etiquetas = {
+    computacion: 'Computación',
+    audiovisual: 'Audiovisual',
+    redes: 'Redes',
+    medicion: 'Medición',
+    mobiliario: 'Mobiliario',
+  };
+  return etiquetas[codigo] || codigo;
+}
+
+// Porcentaje de unidades ocupadas: comprometidas / stockTotal * 100.
+// La barra se pinta con ese ancho y se marca riel--lleno cuando llega al 100%.
+function porcentajeOcupado(equipo) {
+  if (!equipo.stockTotal) return 0;
+  const porcentaje = (equipo.comprometidas / equipo.stockTotal) * 100;
+  return Math.round(porcentaje);
+}
 </script>
