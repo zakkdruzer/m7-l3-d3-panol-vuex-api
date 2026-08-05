@@ -1,0 +1,391 @@
+/* ---------- reset y tipografía ---------- */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f4f6f8;
+  color: #1c2530;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ---------- layout ---------- */
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0 1.5rem;
+  height: 60px;
+  background: #1f2d3a;
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.barra h1 {
+  font-size: 1.05rem;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.menu {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.menu a {
+  color: #b9c7d4;
+  text-decoration: none;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.menu a:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.menu a.router-link-active {
+  background: #2f8f66;
+  color: #fff;
+}
+
+.contenido {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.75rem 1.5rem 4rem;
+}
+
+/* ---------- piezas ---------- */
+.cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.sub {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+.btn {
+  background: #2f8f66;
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.55rem 1rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.btn:disabled {
+  background: #9bb8ab;
+  cursor: not-allowed;
+}
+
+.btn--gris {
+  background: #94a3b8;
+}
+
+.btn--fino {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.78rem;
+}
+
+.tarjeta {
+  background: #fff;
+  border: 1px solid #dfe6ec;
+  border-radius: 12px;
+  padding: 1.1rem;
+}
+
+.grilla {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+/* ---------- avisos ---------- */
+.aviso {
+  background: #fff;
+  border: 1px solid #dfe6ec;
+  border-radius: 10px;
+  padding: 2rem;
+  text-align: center;
+  color: #64748b;
+}
+
+.aviso--error {
+  background: #fdeceb;
+  border-color: #f0b7b1;
+  color: #96251a;
+}
+
+/* ---------- tabla ---------- */
+.tabla-caja {
+  background: #fff;
+  border: 1px solid #dfe6ec;
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.87rem;
+  min-width: 760px;
+}
+
+th,
+td {
+  padding: 0.65rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid #eef2f7;
+}
+
+th {
+  background: #f7f9fb;
+  font-size: 0.73rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+tr.ocupada {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+tr.atrasada {
+  background: #fdf5f4;
+}
+
+td small {
+  display: block;
+  color: #94a3b8;
+  font-size: 0.76rem;
+}
+
+.mono {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* ---------- chips de estado ---------- */
+.chip {
+  font-size: 0.73rem;
+  font-weight: 700;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  text-transform: capitalize;
+  display: inline-block;
+}
+
+.chip--pendiente {
+  background: #fdf3e4;
+  color: #96590c;
+}
+
+.chip--entregado {
+  background: #e9f1fb;
+  color: #2a6fc9;
+}
+
+.chip--devuelto {
+  background: #e9f6f0;
+  color: #2f8f66;
+}
+
+.chip--atraso {
+  background: #fdeceb;
+  color: #c0392b;
+}
+
+/* ---------- formulario ---------- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 640px;
+}
+
+.fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+label span {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+input,
+select,
+textarea {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #cfd9e2;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-family: inherit;
+  background: #fff;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid #42b883;
+  outline-offset: 1px;
+  border-color: #42b883;
+}
+
+.malo {
+  border-color: #c0392b;
+  background: #fdf5f4;
+}
+
+.malo-txt {
+  color: #c0392b;
+  font-size: 0.79rem;
+  font-weight: 600;
+}
+
+/* ---------- caja de conflicto (409) ---------- */
+.conflicto {
+  background: #fdf3e4;
+  border: 1px solid #e8c98a;
+  border-left: 4px solid #c47a1b;
+  border-radius: 0 8px 8px 0;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.25rem;
+}
+
+.conflicto strong {
+  color: #96590c;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.conflicto p {
+  margin: 0.2rem 0 0;
+  font-size: 0.88rem;
+  color: #7a4e0d;
+}
+
+/* ---------- panel: cifras ---------- */
+.cifras {
+  display: grid;
+  gap: 0.9rem;
+  margin-bottom: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.cifra {
+  background: #fff;
+  border: 1px solid #dfe6ec;
+  border-left: 4px solid #94a3b8;
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.cifra--bien {
+  border-left-color: #2f8f66;
+}
+
+.cifra--aviso {
+  border-left-color: #c47a1b;
+}
+
+.cifra--malo {
+  border-left-color: #c0392b;
+}
+
+.cifra .valor {
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.cifra .rotulo {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+/* ---------- barras de uso ---------- */
+.riel {
+  background: #eef2f6;
+  border-radius: 999px;
+  height: 0.5rem;
+  overflow: hidden;
+  margin-top: 0.25rem;
+  margin-bottom: 0.1rem;
+}
+
+.riel i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #42b883, #2f8f66);
+}
+
+.riel--lleno i {
+  background: linear-gradient(90deg, #e8a33d, #c0392b);
+}
+
+/* ---------- filtros de la planilla ---------- */
+.filtros {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.1rem;
+  padding: 0.85rem;
+  background: #fff;
+  border: 1px solid #dfe6ec;
+  border-radius: 10px;
+}
+
+.filtros input,
+.filtros select {
+  font-size: 0.86rem;
+  padding: 0.45rem 0.65rem;
+}
+
+.filtros input[type="search"] {
+  flex: 1;
+  min-width: 190px;
+}
+
+/* ---------- estados generales ---------- */
+.aviso,
+.tabla-caja,
+.tarjeta {
+  box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); /* ayuda a que se vean limpias */
+}

@@ -1,10 +1,10 @@
 import { fetchResumenPrestamos } from '../../api/resumen';
 
 const state = () => ({
-  datos: null,        // Objeto con las cifras del pañol
-  cargando: false,    // Indicador de carga para el panel
-  error: null,        // Mensaje de error
-  ultimoFetch: null,  // Marca de tiempo del último fetch
+  datos: null,       // objeto con total, porEstado, porEquipo, porCategoria, etc.
+  cargando: false,
+  error: null,
+  ultimoFetch: null, // fecha del último fetch para el caché de 30s
 });
 
 const mutations = {
@@ -23,18 +23,26 @@ const mutations = {
 };
 
 const actions = {
-  // Carga el resumen desde el servidor. Se puede forzar recarga
-  // pasándole { forzar: true } desde otros módulos.
-  async cargar({ commit }, { forzar = false } = {}) {
+  // Carga el resumen, respetando caché salvo que se pase { forzar: true }.
+  async cargar({ state, commit }, { forzar = false } = {}) {
     commit('SET_ERROR', null);
 
-    // En una versión más avanzada se podría usar forzar y ultimoFetch
-    // para evitar recargar demasiado seguido, pero aquí lo simplificamos.
+    const ahora = Date.now();
+
+    if (
+      state.ultimoFetch &&
+      !forzar &&
+      ahora - state.ultimoFetch < 30_000 // 30 segundos
+    ) {
+      // todavía dentro de la ventana de caché: no volver a pedir
+      return;
+    }
+
     commit('SET_CARGANDO', true);
     try {
       const respuesta = await fetchResumenPrestamos();
       commit('SET_DATOS', respuesta.data);
-      commit('SET_ULTIMO_FETCH', new Date());
+      commit('SET_ULTIMO_FETCH', Date.now());
     } catch (err) {
       commit('SET_ERROR', 'No se pudo cargar el resumen del pañol.');
     } finally {
@@ -52,6 +60,35 @@ const getters = {
   },
   resumenError(state) {
     return state.error;
+  },
+  // getters de forma: preparan datos completos para pintar,
+  // sin inventar totales a partir de la página actual.
+  cifras(state) {
+    if (!state.datos) return [];
+    const d = state.datos;
+    return [
+      { rotulo: 'Préstamos', valor: d.total, tipo: 'normal' },
+      { rotulo: 'Unidades fuera', valor: d.unidadesFuera, tipo: 'bien' },
+      {
+        rotulo: 'Atrasados',
+        valor: d.atrasados,
+        tipo: d.atrasados > 0 ? 'malo' : 'aviso',
+      },
+      {
+        rotulo: 'En circulación',
+        valor: d.valorEnCirculacion,
+        tipo: 'aviso',
+      },
+    ];
+  },
+  usoPorEquipo(state) {
+    // porEquipo trae usoPorcentaje, stockTotal, comprometidas, etc.
+    return state.datos?.porEquipo || [];
+  },
+  prestamosPorCategoria(state) {
+    // porCategoria es un objeto; se devuelve tal cual para que el componente
+    // recorra claves y valores.
+    return state.datos?.porCategoria || {};
   },
 };
 
