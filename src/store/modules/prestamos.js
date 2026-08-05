@@ -1,3 +1,8 @@
+// Módulo Vuex para la planilla de préstamos:
+// - carga lista paginada desde GET /prestamos
+// - maneja filtros, paginación, acciones PATCH/DELETE por fila
+// - guarda aviso de éxito para mostrar una franja verde en la vista
+
 import {
   fetchPrestamos,
   fetchOpcionesPrestamos,
@@ -6,8 +11,8 @@ import {
 } from '../../api/prestamos';
 
 const state = () => ({
-  datos: [],          // lista de préstamos de la página actual
-  meta: null,         // { pagina, porPagina, total, totalPaginas, hayAnterior, haySiguiente }
+  datos: [],          // préstamos de la página actual
+  meta: null,         // información de paginación { pagina, porPagina, total, totalPaginas, hayAnterior, haySiguiente }
   opciones: {         // opciones para filtros (estados, estados vivos, categorías)
     estados: [],
     estadosVivos: [],
@@ -23,9 +28,10 @@ const state = () => ({
     pagina: 1,
     porPagina: 6,
   },
-  cargando: false,    // estado de carga global de la tabla
-  error: null,        // error general de la planilla
-  filaOcupadaId: null,// id de la fila que está esperando al servidor (PATCH/DELETE)
+  cargando: false,    // indicador de carga global de la tabla
+  error: null,        // mensaje de error general
+  filaOcupadaId: null,// id de la fila que está esperando respuesta del servidor
+  avisoExito: null,   // mensaje de éxito (por ejemplo, al crear un préstamo)
 });
 
 const mutations = {
@@ -51,21 +57,26 @@ const mutations = {
     state.filaOcupadaId = id;
   },
   REEMPLAZAR_PRESTAMO(state, prestamoActualizado) {
-    // reemplaza solo la fila que el servidor devolvió actualizada
+    // Reemplaza sólo la fila cuyo id coincide con el que devolvió el servidor.
     state.datos = state.datos.map((p) =>
       p.id === prestamoActualizado.id ? prestamoActualizado : p
     );
   },
+  SET_AVISO_EXITO(state, mensaje) {
+    state.avisoExito = mensaje;
+  },
 };
 
 const actions = {
-  // Cargar la planilla con filtros y paginación.
+  // Carga la planilla con los filtros y paginación actuales.
   async cargar({ state, commit }) {
     commit('SET_CARGANDO', true);
     commit('SET_ERROR', null);
 
     try {
       const params = {};
+
+      // Sólo se envían filtros que tienen valor, para evitar 400 por filtros vacíos.
       if (state.filtros.estado) params.estado = state.filtros.estado;
       if (state.filtros.equipoId) params.equipoId = state.filtros.equipoId;
       if (state.filtros.categoria) params.categoria = state.filtros.categoria;
@@ -77,6 +88,7 @@ const actions = {
       params.porPagina = state.filtros.porPagina;
 
       const respuesta = await fetchPrestamos(params);
+      // La API devuelve { datos, meta }.
       commit('SET_DATOS', respuesta.data.datos);
       commit('SET_META', respuesta.data.meta);
     } catch (err) {
@@ -86,7 +98,7 @@ const actions = {
     }
   },
 
-  // Cargar opciones para filtros (estados y categorías).
+  // Carga opciones para los filtros (estados, categorías).
   async cargarOpciones({ commit }) {
     try {
       const respuesta = await fetchOpcionesPrestamos();
@@ -96,15 +108,14 @@ const actions = {
     }
   },
 
-  // Cambiar filtros: cualquier cambio vuelve a la página 1.
+  // Aplica cambios de filtros y vuelve a la página 1.
   async aplicarFiltros({ commit, dispatch, state }, cambios) {
     const nuevosFiltros = { ...state.filtros, ...cambios, pagina: 1 };
-    // no enviar filtros vacíos para evitar 400
     commit('SET_FILTROS', nuevosFiltros);
     await dispatch('cargar');
   },
 
-  // Cambiar página usando meta.hayAnterior / haySiguiente.
+  // Cambia página usando meta.hayAnterior / meta.haySiguiente.
   async cambiarPagina({ commit, dispatch, state }, direccion) {
     const paginaActual = state.filtros.pagina;
     const meta = state.meta;
@@ -123,46 +134,55 @@ const actions = {
     }
   },
 
-  // Marcar como entregado (PATCH estado: 'entregado').
+  // Marca un préstamo como entregado (PATCH estado: 'entregado').
   async marcarEntregado({ commit }, prestamo) {
     commit('SET_FILA_OCUPADA', prestamo.id);
     try {
+      // El servidor devuelve el préstamo ya actualizado, con todos los campos derivados.
       const respuesta = await patchPrestamo(prestamo.id, { estado: 'entregado' });
-      // El servidor ya devuelve el préstamo actualizado: se reemplaza solo esa fila.
       commit('REEMPLAZAR_PRESTAMO', respuesta.data);
     } catch (err) {
-      // aquí se podría guardar un error más detallado
+      // Aquí podrías manejar errores específicos si quisieras.
     } finally {
-      // muy importante: limpiar filaOcupada también cuando falla
+      // Siempre se limpia la marca de fila ocupada, incluso en caso de error.
       commit('SET_FILA_OCUPADA', null);
     }
   },
 
-  // Marcar como devuelto (PATCH estado: 'devuelto').
+  // Marca un préstamo como devuelto (PATCH estado: 'devuelto').
   async marcarDevuelto({ commit }, prestamo) {
     commit('SET_FILA_OCUPADA', prestamo.id);
     try {
       const respuesta = await patchPrestamo(prestamo.id, { estado: 'devuelto' });
       commit('REEMPLAZAR_PRESTAMO', respuesta.data);
     } catch (err) {
-      // manejo de error opcional
+      // Manejo de errores opcional.
     } finally {
       commit('SET_FILA_OCUPADA', null);
     }
   },
 
-  // Eliminar préstamo con confirmación desde el componente.
+  // Elimina un préstamo tras confirmación en el componente.
   async borrar({ commit, dispatch }, id) {
     commit('SET_FILA_OCUPADA', id);
     try {
       await eliminarPrestamo(id);
-      // después de borrar, recargar la planilla.
+      // Después de borrar se recarga la planilla; el servidor ajusta meta y datos.
       await dispatch('cargar');
     } catch (err) {
       commit('SET_ERROR', 'No se pudo eliminar el préstamo.');
     } finally {
       commit('SET_FILA_OCUPADA', null);
     }
+  },
+
+  // Muestra un aviso verde de éxito en la planilla y lo limpia automáticamente
+  // a los 4 segundos.
+  mostrarAvisoExito({ commit }, mensaje) {
+    commit('SET_AVISO_EXITO', mensaje);
+    setTimeout(() => {
+      commit('SET_AVISO_EXITO', null);
+    }, 4000);
   },
 };
 
@@ -184,6 +204,9 @@ const getters = {
   },
   filaOcupadaId(state) {
     return state.filaOcupadaId;
+  },
+  avisoExito(state) {
+    return state.avisoExito;
   },
 };
 

@@ -1,5 +1,16 @@
-import { crearPrestamo, fetchPrestamoPorId, actualizarPrestamo } from '../../api/prestamos';
+// Módulo Vuex para el formulario de préstamos:
+// - mismo formulario sirve para crear y editar
+// - maneja errores 422 por campo y conflictos 409 de stock en propiedades separadas
+// - al guardar bien, refresca la planilla y dispara el aviso de éxito
 
+import {
+  crearPrestamo,
+  fetchPrestamoPorId,
+  actualizarPrestamo,
+} from '../../api/prestamos';
+
+// Función que genera el objeto inicial del formulario.
+// Se usa en state y al reiniciar el formulario para no arrastrar datos viejos.
 const estadoInicial = () => ({
   equipoId: '',
   solicitante: '',
@@ -42,6 +53,7 @@ const mutations = {
     state.conflictoStock = null;
   },
   CARGAR_PRESTAMO_EN_FORMULARIO(state, prestamo) {
+    // Carga los datos del préstamo en el formulario de edición.
     state.modelo = {
       equipoId: String(prestamo.equipoId),
       solicitante: prestamo.solicitante,
@@ -55,13 +67,13 @@ const mutations = {
 };
 
 const actions = {
-  // Entrar a /prestamos/nuevo
+  // Preparar formulario para /prestamos/nuevo (modo crear).
   prepararNuevo({ commit }) {
     commit('SET_MODO', { modo: 'crear', id: null });
     commit('REINICIAR_FORMULARIO');
   },
 
-  // Entrar a /prestamos/:id
+  // Preparar formulario para /prestamos/:id (modo editar).
   async prepararEdicion({ commit }, id) {
     commit('SET_MODO', { modo: 'editar', id });
     commit('REINICIAR_FORMULARIO');
@@ -69,11 +81,11 @@ const actions = {
       const respuesta = await fetchPrestamoPorId(id);
       commit('CARGAR_PRESTAMO_EN_FORMULARIO', respuesta.data);
     } catch (err) {
-      // si el id no existe, aquí podrías manejar un redirect o mostrar un mensaje
+      // Aquí podrías manejar el caso de id inexistente (404) con un redirect o aviso.
     }
   },
 
-  // Guardar: según modo, hace POST o PUT
+  // Guardar formulario: si modo es 'crear' usa POST; si es 'editar' usa PUT.
   async guardar({ state, commit, dispatch }) {
     commit('SET_ENVIANDO', true);
     commit('SET_ERRORES_CAMPOS', {});
@@ -87,33 +99,44 @@ const actions = {
         respuesta = await actualizarPrestamo(state.idActual, state.modelo);
       }
 
-      // éxito: limpiar formulario, refrescar planilla y recién ahí navegar
+      // Éxito: limpiar formulario, refrescar planilla y disparar aviso verde.
       commit('REINICIAR_FORMULARIO');
+
+      // Recargar la planilla de préstamos para que refleje el cambio.
       await dispatch('prestamos/cargar', null, { root: true });
-      // aquí también podrías invalidar el resumen con dispatch('resumen/cargar', { forzar: true }, { root: true })
+
+      // Disparar un aviso de éxito en la planilla. Si tu API devuelve código,
+      // puedes usar respuesta.data.codigo aquí.
+      await dispatch(
+        'prestamos/mostrarAvisoExito',
+        'Préstamo guardado correctamente.',
+        { root: true }
+      );
+
+      // Devolver resultado para que el componente decida si navegar o no.
       return { ok: true, tipo: 'exito', data: respuesta.data };
     } catch (err) {
       const resp = err.response;
       if (resp && resp.status === 422) {
-        // errores por campo: se guardan en erroresCampos
+        // Errores de validación por campo: se guardan en erroresCampos.
         commit('SET_ERRORES_CAMPOS', resp.data?.errores || {});
         return { ok: false, tipo: '422' };
       } else if (resp && resp.status === 409) {
-        // conflicto de stock: se guarda en conflictoStock
+        // Conflicto de stock: se guarda en conflictoStock con message y stock.
         commit('SET_CONFLICTO_STOCK', {
           message: resp.data?.message,
           stock: resp.data?.stock,
         });
         return { ok: false, tipo: '409' };
       }
-      // otros errores (network, 500, etc.)
+      // Otros errores (network, 500, etc.)
       return { ok: false, tipo: 'otro' };
     } finally {
       commit('SET_ENVIANDO', false);
     }
   },
 
-  // Cambiar un campo y limpiar solo su error 422
+  // Actualizar un campo y, si tenía error 422, limpiar solo ese mensaje.
   actualizarCampo({ commit, state }, { campo, valor }) {
     commit('SET_CAMPO', { campo, valor });
     if (state.erroresCampos[campo]) {

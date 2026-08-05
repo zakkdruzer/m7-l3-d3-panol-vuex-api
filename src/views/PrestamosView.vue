@@ -1,10 +1,14 @@
+<!-- Vista de la planilla de préstamos:
+     - muestra tabla paginada con filtros
+     - acciones Entregar / Devolver / Editar / Eliminar
+     - franja verde de éxito cuando se guarda un préstamo -->
+
 <template>
   <section>
     <header class="cabecera">
       <div>
         <h2>Préstamos</h2>
         <p class="sub">
-          <!-- contador usando meta -->
           Mostrando {{ prestamos.length }} de {{ meta?.total ?? 0 }}
         </p>
       </div>
@@ -15,9 +19,24 @@
       </div>
     </header>
 
+    <!-- Aviso verde de éxito (se limpia solo a los 4 s desde Vuex) -->
+    <div
+      v-if="avisoExito"
+      class="aviso"
+      style="
+        background:#e9f6f0;
+        border-color:#2f8f66;
+        color:#1f3830;
+        margin-bottom:1rem;
+        text-align:left;
+      "
+    >
+      {{ avisoExito }}
+    </div>
+
     <!-- Barra de filtros -->
     <div class="filtros">
-      <!-- Buscar -->
+      <!-- Buscar por texto -->
       <input
         type="search"
         placeholder="Buscar por solicitante, área o código"
@@ -28,11 +47,7 @@
       <!-- Estado -->
       <select :value="filtros.estado" @change="onEstado($event.target.value)">
         <option value="">Todos los estados</option>
-        <option
-          v-for="estado in opciones.estados"
-          :key="estado"
-          :value="estado"
-        >
+        <option v-for="estado in opciones.estados" :key="estado" :value="estado">
           {{ estado }}
         </option>
       </select>
@@ -40,11 +55,7 @@
       <!-- Equipo (selector alimentado por módulo equipos) -->
       <select :value="filtros.equipoId" @change="onEquipo($event.target.value)">
         <option value="">Todos los equipos</option>
-        <option
-          v-for="equipo in equipos"
-          :key="equipo.id"
-          :value="equipo.id"
-        >
+        <option v-for="equipo in equipos" :key="equipo.id" :value="equipo.id">
           {{ equipo.nombre }}
         </option>
       </select>
@@ -74,7 +85,7 @@
       </button>
     </div>
 
-    <!-- Estado: vacío (con o sin filtros) -->
+    <!-- Estado: vacío -->
     <div v-else-if="prestamos.length === 0" class="aviso">
       <p v-if="tieneFiltros">
         Nada calza con esos filtros.
@@ -121,9 +132,7 @@
               <small>{{ prestamo.equipoCategoria }}</small>
             </td>
 
-            <td>
-              {{ prestamo.cantidad }}
-            </td>
+            <td>{{ prestamo.cantidad }}</td>
 
             <td style="white-space: nowrap;">
               {{ fechaCorta(prestamo.fechaDevolucion) }}
@@ -136,10 +145,7 @@
               <span class="chip" :class="claseChip(prestamo.estado)">
                 {{ prestamo.estado }}
               </span>
-              <span
-                v-if="prestamo.atrasado"
-                class="chip chip--atraso"
-              >
+              <span v-if="prestamo.atrasado" class="chip chip--atraso">
                 Atrasado
               </span>
             </td>
@@ -188,7 +194,7 @@
     <nav
       v-if="meta"
       class="cabecera"
-      style="margin-top: 1rem; justify-content: center; gap: 1rem;"
+      style="margin-top:1rem;justify-content:center;gap:1rem;"
     >
       <button
         class="btn btn--gris"
@@ -212,36 +218,43 @@
 </template>
 
 <script setup>
+// Script de la vista de préstamos:
+// lee módulos prestamos y equipos, conecta filtros y acciones.
+
 import { computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 
 const store = useStore();
 
-// Lectura del módulo prestamos
+// getters del módulo prestamos
 const prestamos = computed(() => store.getters['prestamos/prestamos']);
 const meta = computed(() => store.getters['prestamos/metaPrestamos']);
 const opciones = computed(() => store.getters['prestamos/opcionesPrestamos']);
 const cargando = computed(() => store.getters['prestamos/prestamosCargando']);
 const error = computed(() => store.getters['prestamos/prestamosError']);
 const filaOcupadaId = computed(() => store.getters['prestamos/filaOcupadaId']);
+const avisoExito = computed(() => store.getters['prestamos/avisoExito']);
+
+// filtros se leen directo del state del módulo prestamos
 const filtros = computed(() => store.state.prestamos.filtros);
 
-// Lectura del módulo equipos para el selector de filtro por equipo
+// módulo equipos para el selector de filtro por equipo
 const equipos = computed(() => store.getters['equipos/equipos']);
 
+// detectar si hay filtros activos para diferenciar estado vacío
 const tieneFiltros = computed(() => {
   const f = filtros.value;
   return !!(f.estado || f.equipoId || f.categoria || f.atrasados || f.buscar);
 });
 
-// Carga inicial
+// carga inicial
 onMounted(() => {
   store.dispatch('prestamos/cargar');
   store.dispatch('prestamos/cargarOpciones');
   store.dispatch('equipos/cargar');
 });
 
-// Handlers de filtros: leen value y escriben vía action (no v-model contra store)
+// handlers de filtros: leen value y escriben vía action (no v-model contra store)
 function onBuscar(valor) {
   store.dispatch('prestamos/aplicarFiltros', { buscar: valor });
 }
@@ -272,7 +285,7 @@ function reintentar() {
   store.dispatch('prestamos/cargar');
 }
 
-// Acciones de fila
+// acciones de fila
 function entregar(prestamo) {
   store.dispatch('prestamos/marcarEntregado', prestamo);
 }
@@ -287,7 +300,7 @@ function confirmarBorrado(id) {
   }
 }
 
-// Paginación
+// paginación
 function paginaAnterior() {
   store.dispatch('prestamos/cambiarPagina', 'anterior');
 }
@@ -296,12 +309,12 @@ function paginaSiguiente() {
   store.dispatch('prestamos/cambiarPagina', 'siguiente');
 }
 
-// Chip de estado
+// chip de estado
 function claseChip(estado) {
   return `chip--${estado}`;
 }
 
-// Formato de fecha corto (ayudante sugerido en el PDF)
+// formato de fecha corto
 function fechaCorta(iso) {
   return new Date(`${iso}T00:00:00`).toLocaleDateString('es-CL', {
     day: 'numeric',
