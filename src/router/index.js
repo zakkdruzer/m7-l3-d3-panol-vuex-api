@@ -1,21 +1,19 @@
+// src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router';
 import InventarioView from '../views/InventarioView.vue';
 import PrestamosView from '../views/PrestamosView.vue';
-import FormularioPrestamoView from '../views/FormularioPrestamoView.vue';
-import PanelEncargadoView from '../views/PanelEncargadoView.vue';
+import PrestamoFormView from '../views/PrestamoFormView.vue';
+import PanelView from '../views/PanelView.vue';
 
-// Se define el router con cuatro rutas principales.
-// Cada ruta corresponde a uno de los requisitos del PDF:
-// inventario, planilla de préstamos, formulario, y panel del encargado.
 const routes = [
   {
     path: '/',
-    redirect: '/inventario', // Redirigir la raíz al inventario
+    redirect: { name: 'panel' }, // El PDF sugiere una ruta comodín al panel
   },
   {
-    path: '/inventario',
-    name: 'inventario',
-    component: InventarioView,
+    path: '/panel',
+    name: 'panel',
+    component: PanelView,
   },
   {
     path: '/prestamos',
@@ -25,12 +23,18 @@ const routes = [
   {
     path: '/prestamos/nuevo',
     name: 'prestamo-nuevo',
-    component: FormularioPrestamoView,
+    component: PrestamoFormView,
   },
   {
-    path: '/panel',
-    name: 'panel',
-    component: PanelEncargadoView,
+    path: '/prestamos/:id',
+    name: 'prestamo-editar',
+    component: PrestamoFormView,
+    props: true, // El componente recibe `id` como prop en vez de usar useRoute()
+  },
+  {
+    path: '/inventario',
+    name: 'inventario',
+    component: InventarioView,
   },
 ];
 
